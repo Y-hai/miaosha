@@ -3,7 +3,6 @@ package com.miaoshaproject.controller;
 import com.miaoshaproject.controller.viewobject.ItemVO;
 import com.miaoshaproject.error.BusinessException;
 import com.miaoshaproject.response.CommonReturnType;
-import com.miaoshaproject.service.CacheService;
 import com.miaoshaproject.service.ItemService;
 import com.miaoshaproject.service.model.ItemModel;
 import org.joda.time.format.DateTimeFormat;
@@ -81,18 +80,18 @@ public class ItemController extends BaseController {
         // 先取本地缓存
 //        itemModel = (ItemModel) cacheService.getFromCommonCache("item_" + id);
 //        if (itemModel == null) {
-            // 根据商品的id到redis内获取
-            itemModel = (ItemModel) redisTemplate.opsForValue().get("item_" + id);
+        // 根据商品的id到redis内获取
+        itemModel = (ItemModel) redisTemplate.opsForValue().get("item_" + id);
 
-            // 若redis内没有这个数据，则访问下游service
-            if (itemModel == null) {
-                itemModel = itemService.getItemById(id);
-                // 设置缓存
-                redisTemplate.opsForValue().set("item_" + id, itemModel);
-                // 设置缓存失效时间
-                redisTemplate.expire("item_" + id, 10, TimeUnit.MINUTES);
-            }
-            // 填充本地缓存
+        // 若redis内没有这个数据，则访问下游service
+        if (itemModel == null) {
+            itemModel = itemService.getItemById(id);
+            // 设置缓存
+            redisTemplate.opsForValue().set("item_" + id, itemModel);
+            // 设置缓存失效时间
+            redisTemplate.expire("item_" + id, 10, TimeUnit.MINUTES);
+        }
+        // 填充本地缓存
 //            cacheService.setCommonCache("item_" + id, itemModel);
 //        }
 

@@ -14,7 +14,6 @@ import org.springframework.web.bind.annotation.*;
 import sun.misc.BASE64Encoder;
 
 import javax.annotation.Resource;
-import javax.servlet.http.HttpServletRequest;
 import java.io.UnsupportedEncodingException;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
@@ -30,8 +29,8 @@ public class UserController extends BaseController {
     @Resource
     private UserService userService;
 
-    @Resource
-    private HttpServletRequest httpServletRequest; // 单例模式支持并发访问？
+//    @Resource
+//    private HttpServletRequest httpServletRequest; // 单例模式支持并发访问？
 
     @Resource
     private RedisTemplate redisTemplate;
