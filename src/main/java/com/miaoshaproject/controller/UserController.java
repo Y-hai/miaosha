@@ -11,10 +11,10 @@ import org.springframework.beans.BeanUtils;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.*;
-import sun.misc.BASE64Encoder;
 
 import javax.annotation.Resource;
 import java.io.UnsupportedEncodingException;
+import java.math.BigInteger;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.Random;
@@ -90,7 +90,7 @@ public class UserController extends BaseController {
         userModel.setAge(Integer.valueOf(age));
         userModel.setGender(Byte.valueOf(gender));
         userModel.setTelphone(telphone);
-        userModel.setRegisitMode("byphone");
+        userModel.setRegisitMode("byPhone");
 
         //密码加密
         userModel.setEncrptPassword(this.EncodeByMd5(password));
@@ -100,14 +100,13 @@ public class UserController extends BaseController {
     }
 
     //密码加密
-    public String EncodeByMd5(String str)
-            throws NoSuchAlgorithmException, UnsupportedEncodingException {
-        //确定计算方法
-        MessageDigest md5 = MessageDigest.getInstance("MD5");
-        BASE64Encoder base64en = new BASE64Encoder();
-        //加密字符串
-        String newstr = base64en.encode(md5.digest(str.getBytes("utf-8")));
-        return newstr;
+    public String EncodeByMd5(String str) throws NoSuchAlgorithmException {
+        byte[] secretBytes = MessageDigest.getInstance("md5").digest(str.getBytes());
+        String md5code = new BigInteger(1, secretBytes).toString(16);// 16进制数字
+        // 如果生成数字未满32位，需要前面补0
+        for (int i = 0; i < 32 - md5code.length(); i++)
+            md5code = "0" + md5code;
+        return md5code;
     }
 
     //用户获取otp短信接口

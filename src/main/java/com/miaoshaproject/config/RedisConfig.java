@@ -6,14 +6,14 @@ import com.miaoshaproject.serializer.JodaDateTimeJsonDeserializer;
 import com.miaoshaproject.serializer.JodaDateTimeJsonSerialize;
 import org.joda.time.DateTime;
 import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
 import org.springframework.data.redis.connection.RedisConnectionFactory;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.data.redis.serializer.Jackson2JsonRedisSerializer;
 import org.springframework.data.redis.serializer.StringRedisSerializer;
 import org.springframework.session.data.redis.config.annotation.web.http.EnableRedisHttpSession;
-import org.springframework.stereotype.Component;
 
-@Component
+@Configuration
 @EnableRedisHttpSession(maxInactiveIntervalInSeconds = 3600)
 public class RedisConfig {
     // 参见RedisAutoConfiguration类
@@ -22,11 +22,11 @@ public class RedisConfig {
         RedisTemplate redisTemplate = new RedisTemplate();
         redisTemplate.setConnectionFactory(redisConnectionFactory);
 
-        // 首先解决key的序列化方式
+        // 首先解决key的序列化方式，key序列化为字符串
         StringRedisSerializer stringRedisSerializer = new StringRedisSerializer();
         redisTemplate.setKeySerializer(stringRedisSerializer);
 
-        // 解决value序列化
+        // 解决value序列化，value序列化为json
         Jackson2JsonRedisSerializer jackson2JsonRedisSerializer = new Jackson2JsonRedisSerializer(Object.class);
 
         ObjectMapper objectMapper = new ObjectMapper();
