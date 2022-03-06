@@ -5,34 +5,28 @@ import com.miaoshaproject.dataobject.UserDO;
 import org.mybatis.spring.annotation.MapperScan;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
-import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import javax.annotation.Resource;
 
-/**
- * Hello world!
- */
-@SpringBootApplication(scanBasePackages = {"com.miaoshaproject"})
-@RestController
-@MapperScan("com.miaoshaproject.dao")
+//@SpringBootApplication(scanBasePackages = {"com.miaoshaproject"})
+@SpringBootApplication
+@RestController // 加这个就不用加ResponseBody了
+@MapperScan(basePackages = "com.miaoshaproject.dao")
 public class App {
 
     @Resource
     private UserDOMapper userDOMapper;
 
-    @RequestMapping("/")
+    @GetMapping("/")
     public String home() {
         UserDO userDO = userDOMapper.selectByPrimaryKey(40);
-        if (userDO == null) {
-            return "用户对象不存在";
-        } else {
-            return userDO.getName();
-        }
+        if (userDO == null) return "用户对象不存在";
+        else return userDO.getName();
     }
 
     public static void main(String[] args) {
-        System.out.println("Hello World!");
         SpringApplication.run(App.class, args);
     }
 }

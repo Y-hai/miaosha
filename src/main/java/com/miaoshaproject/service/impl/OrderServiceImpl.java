@@ -6,7 +6,6 @@ import com.miaoshaproject.dataobject.OrderDO;
 import com.miaoshaproject.dataobject.SequenceDO;
 import com.miaoshaproject.error.BusinessException;
 import com.miaoshaproject.error.EmBusinessError;
-import com.miaoshaproject.service.CacheService;
 import com.miaoshaproject.service.ItemService;
 import com.miaoshaproject.service.OrderService;
 import com.miaoshaproject.service.UserService;

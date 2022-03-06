@@ -18,6 +18,7 @@ import javax.servlet.http.HttpServletRequest;
 @RequestMapping("/order")
 @CrossOrigin(origins = {"*"}, allowCredentials = "true")
 public class OrderController extends BaseController {
+
     @Resource
     private OrderService orderService;
     @Resource
@@ -26,11 +27,12 @@ public class OrderController extends BaseController {
     private RedisTemplate redisTemplate;
 
     //封装下单请求
-    @RequestMapping(value = "/createorder", method = {RequestMethod.POST}, consumes = {CONTENT_TYPE_FORMED})
+    @PostMapping(value = "/createorder", consumes = {CONTENT_TYPE_FORMED})
     @ResponseBody
-    public CommonReturnType createOrder(@RequestParam(name = "itemId") Integer itemId,
-                                        @RequestParam(name = "promoId", required = false) Integer promoId,
-                                        @RequestParam(name = "amount") Integer amount) throws BusinessException {
+    public CommonReturnType createOrder(
+            @RequestParam(name = "itemId") Integer itemId,
+            @RequestParam(name = "promoId", required = false) Integer promoId,
+            @RequestParam(name = "amount") Integer amount) throws BusinessException {
 
         //获取用户登录信息
 //        Boolean isLogin = (Boolean) httpServletRequest.getSession().getAttribute("IS_LOGIN");

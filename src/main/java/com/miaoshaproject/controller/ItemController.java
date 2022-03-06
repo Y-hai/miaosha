@@ -32,7 +32,7 @@ public class ItemController extends BaseController {
 //    private CacheService cacheService;
 
     //创建商品的controller
-    @RequestMapping(value = "/create", method = {RequestMethod.POST}, consumes = {CONTENT_TYPE_FORMED})
+    @PostMapping(value = "/create", consumes = {CONTENT_TYPE_FORMED})
     @ResponseBody
     public CommonReturnType createItem(@RequestParam(name = "title") String title,
                                        @RequestParam(name = "description") String description,
@@ -72,7 +72,7 @@ public class ItemController extends BaseController {
     }
 
     //商品详情页浏览
-    @RequestMapping(value = "/get", method = {RequestMethod.GET})
+    @GetMapping("/get")
     @ResponseBody
     public CommonReturnType getItem(@RequestParam(name = "id") Integer id) {
         ItemModel itemModel = null;
@@ -101,7 +101,7 @@ public class ItemController extends BaseController {
     }
 
     //商品列表页面浏览
-    @RequestMapping(value = "/list", method = {RequestMethod.GET})
+    @GetMapping("/list")
     @ResponseBody
     public CommonReturnType listItem() {
         List<ItemModel> itemModelList = itemService.listItem();

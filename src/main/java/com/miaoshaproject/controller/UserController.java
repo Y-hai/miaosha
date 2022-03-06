@@ -36,7 +36,7 @@ public class UserController extends BaseController {
     private RedisTemplate redisTemplate;
 
     //用户登录接口
-    @RequestMapping(value = "/login", method = {RequestMethod.POST}, consumes = {CONTENT_TYPE_FORMED})
+    @PostMapping(value = "/login", consumes = {CONTENT_TYPE_FORMED})
     @ResponseBody
     public CommonReturnType login(@RequestParam(name = "telphone") String telphone,
                                   @RequestParam(name = "password") String password)
@@ -67,7 +67,7 @@ public class UserController extends BaseController {
     }
 
     //用户注册接口
-    @RequestMapping(value = "/register", method = {RequestMethod.POST}, consumes = {CONTENT_TYPE_FORMED})
+    @PostMapping(value = "/register", consumes = {CONTENT_TYPE_FORMED})
     @ResponseBody
     public CommonReturnType register(@RequestParam(name = "telphone") String telphone,
                                      @RequestParam(name = "otpCode") String otpCode,
@@ -111,7 +111,7 @@ public class UserController extends BaseController {
     }
 
     //用户获取otp短信接口
-    @RequestMapping(value = "/getotp", method = {RequestMethod.POST}, consumes = {CONTENT_TYPE_FORMED})
+    @PostMapping(value = "/getotp", consumes = {CONTENT_TYPE_FORMED})
     @ResponseBody
     public CommonReturnType getOtp(@RequestParam(name = "telphone") String telphone) {
 
@@ -131,7 +131,7 @@ public class UserController extends BaseController {
         return CommonReturnType.create(null);
     }
 
-    @RequestMapping("/get")
+    @GetMapping("/get")
     @ResponseBody
     public CommonReturnType getUser(@RequestParam(name = "id") Integer id) throws BusinessException {
         UserModel userModel = userService.getUserById(id);
@@ -152,6 +152,5 @@ public class UserController extends BaseController {
         BeanUtils.copyProperties(userModel, userVO);
         return userVO;
     }
-
 
 }

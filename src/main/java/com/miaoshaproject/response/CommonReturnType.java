@@ -5,6 +5,7 @@ public class CommonReturnType {
     private String status;
     private Object data;
 
+    // 二重奏
     public static CommonReturnType create(Object result){
         return CommonReturnType.create(result,"success");
     }
