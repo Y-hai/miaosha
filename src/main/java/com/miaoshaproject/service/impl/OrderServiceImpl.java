@@ -1,5 +1,6 @@
 package com.miaoshaproject.service.impl;
 
+import com.miaoshaproject.dao.ItemStockDOMapper;
 import com.miaoshaproject.dao.OrderDOMapper;
 import com.miaoshaproject.dao.SequenceDOMapper;
 import com.miaoshaproject.dataobject.OrderDO;
@@ -13,23 +14,27 @@ import com.miaoshaproject.service.model.ItemModel;
 import com.miaoshaproject.service.model.OrderModel;
 import com.miaoshaproject.service.model.UserModel;
 import org.springframework.beans.BeanUtils;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.support.TransactionSynchronizationAdapter;
+import org.springframework.transaction.support.TransactionSynchronizationManager;
 
 import javax.annotation.Resource;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
+import java.util.concurrent.TimeUnit;
 
 @Service
 public class OrderServiceImpl implements OrderService {
 
-    @Resource
+    @Autowired
     private ItemService itemService;
 
-    @Resource
+    @Autowired
     private UserService userService;
 
     @Resource
@@ -39,6 +44,9 @@ public class OrderServiceImpl implements OrderService {
     private SequenceDOMapper sequenceDOMapper;
 
     @Resource
+    private ItemStockDOMapper itemStockDOMapper;
+
+    @Autowired
     private RedisTemplate redisTemplate;
 
 //    @Resource
@@ -49,12 +57,13 @@ public class OrderServiceImpl implements OrderService {
     public OrderModel createOrder(Integer userId, Integer itemId, Integer promoId, Integer amount) throws BusinessException {
 
         //1.校验下单状态，下单的商品是否存在，用户是否合法，购买数量是否正确
-        ItemModel itemModel = itemService.getItemById(itemId);
+//        ItemModel itemModel = itemService.getItemById(itemId);
+        ItemModel itemModel = itemService.getItemByIdInCache(itemId);
         if (itemModel == null) {
             throw new BusinessException(EmBusinessError.PARAMETER_VALIDATION_ERROR, "商品信息不存在");
         }
 
-        UserModel userModel = userService.getUserById(userId);
+        UserModel userModel = userService.getUserByIdInCache(userId);
         if (userModel == null) {
             throw new BusinessException(EmBusinessError.PARAMETER_VALIDATION_ERROR, "用户信息不存在");
         }
@@ -72,12 +81,21 @@ public class OrderServiceImpl implements OrderService {
             } else if (itemModel.getPromoModel().getStatus() != 2) {
                 throw new BusinessException(EmBusinessError.PARAMETER_VALIDATION_ERROR, "活动信息不正确");
             }
-        }
-
-        //2.落单减库存
-        boolean result = itemService.decreaseStock(itemId, amount);
-        if (!result) {
-            throw new BusinessException(EmBusinessError.STOCK_NOT_ENOUGH);
+            //2.落单减库存，对于活动商品通过rocketmq来实现
+            boolean result = itemService.decreaseStock(itemId, amount);
+            if (!result)
+                throw new BusinessException(EmBusinessError.STOCK_NOT_ENOUGH);
+        } else {
+            // 对于非活动商品直接进行操作
+            int affectedRow = itemStockDOMapper.decreaseStock(itemId, amount);
+            if (affectedRow <= 0) {
+                throw new BusinessException(EmBusinessError.STOCK_NOT_ENOUGH);
+            } else {
+                // 设置缓存
+                redisTemplate.opsForValue().set("item_" + itemId, itemService.getItemById(itemId));
+                // 设置缓存失效时间
+                redisTemplate.expire("item_" + itemId, 10, TimeUnit.MINUTES);
+            }
         }
 
         //3.订单入库
@@ -88,12 +106,16 @@ public class OrderServiceImpl implements OrderService {
         orderModel.setPromoId(promoId);
 
         if (promoId != null) {
+            // 如果是活动商品，注入活动商品单价
             orderModel.setItemPrice(itemModel.getPromoModel().getPromoItemPrice());
         } else {
+            // 对于非活动商品，注入商品单价
             orderModel.setItemPrice(itemModel.getPrice());
         }
 
-        orderModel.setOrderPrice(orderModel.getItemPrice().multiply(BigDecimal.valueOf(amount)));
+        // 注入订单总花费金额
+        orderModel.setOrderPrice(orderModel.getItemPrice().
+                multiply(BigDecimal.valueOf(amount)));
 
         // 生成交易流水号，订单号
         orderModel.setId(generateOrderNo());
@@ -105,8 +127,18 @@ public class OrderServiceImpl implements OrderService {
         // 清除guava cache缓存
 //        cacheService.rmCommonCache("item_" + itemId);
 //        redisTemplate.delete("item_" + itemId);
-        // 更新redis缓存
-        redisTemplate.opsForValue().set("item_" + itemId, itemService.getItemById(itemId));
+
+        TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronizationAdapter() {
+            @Override
+            public void afterCommit() {
+                // 异步更新库存
+                boolean mqResult = itemService.asyncDecreaseStock(itemId, amount);
+//                if (!mqResult) {
+//                    itemService.increaseStock(itemId, amount);
+//                    throw new BusinessException(EmBusinessError.MQ_SEND_FAIL);
+//                }
+            }
+        });
 
         //4.返回前端
         return orderModel;

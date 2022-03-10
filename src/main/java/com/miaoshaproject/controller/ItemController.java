@@ -4,14 +4,15 @@ import com.miaoshaproject.controller.viewobject.ItemVO;
 import com.miaoshaproject.error.BusinessException;
 import com.miaoshaproject.response.CommonReturnType;
 import com.miaoshaproject.service.ItemService;
+import com.miaoshaproject.service.PromoService;
 import com.miaoshaproject.service.model.ItemModel;
 import org.joda.time.format.DateTimeFormat;
 import org.springframework.beans.BeanUtils;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.*;
 
-import javax.annotation.Resource;
 import java.math.BigDecimal;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
@@ -22,18 +23,21 @@ import java.util.stream.Collectors;
 @CrossOrigin(allowCredentials = "true", origins = {"*"})
 public class ItemController extends BaseController {
 
-    @Resource
+    @Autowired
     private ItemService itemService;
 
-    @Resource
+    @Autowired
     private RedisTemplate redisTemplate;
+
+    @Autowired
+    private PromoService promoService;
 
 //    @Resource
 //    private CacheService cacheService;
 
     //创建商品的controller
-    @PostMapping(value = "/create", consumes = {CONTENT_TYPE_FORMED})
     @ResponseBody
+    @PostMapping(value = "/create", consumes = {CONTENT_TYPE_FORMED})
     public CommonReturnType createItem(@RequestParam(name = "title") String title,
                                        @RequestParam(name = "description") String description,
                                        @RequestParam(name = "price") BigDecimal price,
@@ -50,6 +54,7 @@ public class ItemController extends BaseController {
 
         ItemModel itemModelForReturn = itemService.createItem(itemModel);
         ItemVO itemVO = convertVOFromModel(itemModelForReturn);
+        promoService.publishPromo(itemModelForReturn.getId()); // 同步缓存到Redis
         return CommonReturnType.create(itemVO);
     }
 
@@ -71,9 +76,16 @@ public class ItemController extends BaseController {
         return itemVO;
     }
 
-    //商品详情页浏览
-    @GetMapping("/get")
     @ResponseBody
+    @GetMapping("/publishpromo")
+    public CommonReturnType publishpromo(@RequestParam(name = "id") Integer id) {
+        promoService.publishPromo(id);
+        return CommonReturnType.create(null);
+    }
+
+    //商品详情页浏览
+    @ResponseBody
+    @GetMapping("/get")
     public CommonReturnType getItem(@RequestParam(name = "id") Integer id) {
         ItemModel itemModel = null;
 
@@ -101,8 +113,8 @@ public class ItemController extends BaseController {
     }
 
     //商品列表页面浏览
-    @GetMapping("/list")
     @ResponseBody
+    @GetMapping("/list")
     public CommonReturnType listItem() {
         List<ItemModel> itemModelList = itemService.listItem();
 

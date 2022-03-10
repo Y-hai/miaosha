@@ -8,7 +8,6 @@ import org.joda.time.DateTime;
 import java.io.IOException;
 
 public class JodaDateTimeJsonSerialize extends JsonSerializer<DateTime> {
-
     @Override
     public void serialize(DateTime dateTime, JsonGenerator jsonGenerator, SerializerProvider serializerProvider) throws IOException {
         jsonGenerator.writeString(dateTime.toString("yyyy-MM-dd HH:mm:ss"));

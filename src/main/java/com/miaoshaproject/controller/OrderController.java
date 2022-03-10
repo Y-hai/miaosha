@@ -3,32 +3,36 @@ package com.miaoshaproject.controller;
 import com.miaoshaproject.error.BusinessException;
 import com.miaoshaproject.error.EmBusinessError;
 import com.miaoshaproject.response.CommonReturnType;
+import com.miaoshaproject.service.ItemService;
 import com.miaoshaproject.service.OrderService;
 import com.miaoshaproject.service.model.OrderModel;
 import com.miaoshaproject.service.model.UserModel;
 import org.apache.commons.lang3.StringUtils;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.*;
 
-import javax.annotation.Resource;
 import javax.servlet.http.HttpServletRequest;
+import java.util.concurrent.TimeUnit;
 
 @Controller("order")
 @RequestMapping("/order")
 @CrossOrigin(origins = {"*"}, allowCredentials = "true")
 public class OrderController extends BaseController {
 
-    @Resource
+    @Autowired
     private OrderService orderService;
-    @Resource
+
+    @Autowired
     private HttpServletRequest httpServletRequest;
-    @Resource
+
+    @Autowired
     private RedisTemplate redisTemplate;
 
     //封装下单请求
-    @PostMapping(value = "/createorder", consumes = {CONTENT_TYPE_FORMED})
     @ResponseBody
+    @PostMapping(value = "/createorder", consumes = {CONTENT_TYPE_FORMED})
     public CommonReturnType createOrder(
             @RequestParam(name = "itemId") Integer itemId,
             @RequestParam(name = "promoId", required = false) Integer promoId,

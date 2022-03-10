@@ -15,4 +15,12 @@ public class UserPasswordDO {
         this.encrptPassword = encrptPassword == null ? null : encrptPassword.trim();
     }
 
+    @Override
+    public String toString() {
+        return "UserPasswordDO{" +
+                "id=" + id +
+                ", encrptPassword='" + encrptPassword + '\'' +
+                ", userId=" + userId +
+                '}';
+    }
 }

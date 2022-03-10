@@ -8,11 +8,11 @@ import com.miaoshaproject.service.UserService;
 import com.miaoshaproject.service.model.UserModel;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.BeanUtils;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.*;
 
-import javax.annotation.Resource;
 import java.io.UnsupportedEncodingException;
 import java.math.BigInteger;
 import java.security.MessageDigest;
@@ -23,30 +23,30 @@ import java.util.concurrent.TimeUnit;
 
 @Controller("user")
 @RequestMapping("/user")
-@CrossOrigin(allowCredentials = "true", allowedHeaders = "*")
+@CrossOrigin(allowCredentials = "true", allowedHeaders = "*") // 跨域
 public class UserController extends BaseController {
 
-    @Resource
+    @Autowired
     private UserService userService;
 
 //    @Resource
 //    private HttpServletRequest httpServletRequest; // 单例模式支持并发访问？
 
-    @Resource
+    @Autowired
     private RedisTemplate redisTemplate;
 
     //用户登录接口
-    @PostMapping(value = "/login", consumes = {CONTENT_TYPE_FORMED})
     @ResponseBody
+    @PostMapping(value = "/login", consumes = {CONTENT_TYPE_FORMED})
     public CommonReturnType login(@RequestParam(name = "telphone") String telphone,
                                   @RequestParam(name = "password") String password)
-            throws BusinessException, UnsupportedEncodingException, NoSuchAlgorithmException {
+            throws BusinessException, NoSuchAlgorithmException {
         //入参校验
         if (StringUtils.isEmpty(telphone) || StringUtils.isEmpty(password)) {
             throw new BusinessException(EmBusinessError.PARAMETER_VALIDATION_ERROR);
         }
 
-        //用户登录服务，用来校验用户登录是否合法
+        //用户登录服务，用来校验用户登录是否合法，验证成功返回UserModel
         //用户加密后的密码
         UserModel userModel = userService.validateLogin(telphone, this.EncodeByMd5(password));
 
@@ -67,15 +67,15 @@ public class UserController extends BaseController {
     }
 
     //用户注册接口
-    @PostMapping(value = "/register", consumes = {CONTENT_TYPE_FORMED})
     @ResponseBody
+    @PostMapping(value = "/register", consumes = {CONTENT_TYPE_FORMED})
     public CommonReturnType register(@RequestParam(name = "telphone") String telphone,
                                      @RequestParam(name = "otpCode") String otpCode,
                                      @RequestParam(name = "name") String name,
                                      @RequestParam(name = "gender") String gender,
                                      @RequestParam(name = "age") String age,
                                      @RequestParam(name = "password") String password)
-            throws BusinessException, UnsupportedEncodingException, NoSuchAlgorithmException {
+            throws BusinessException, NoSuchAlgorithmException {
         //验证手机号和对应的otpCode相符合
 //        String inSessionOtpCode = (String) this.httpServletRequest.getSession().getAttribute(telphone);
         String inSessionOtpCode = (String) redisTemplate.opsForValue().get(telphone);
@@ -110,14 +110,14 @@ public class UserController extends BaseController {
     }
 
     //用户获取otp短信接口
-    @PostMapping(value = "/getotp", consumes = {CONTENT_TYPE_FORMED})
     @ResponseBody
+    @PostMapping(value = "/getotp", consumes = {CONTENT_TYPE_FORMED})
     public CommonReturnType getOtp(@RequestParam(name = "telphone") String telphone) {
 
         //需要按照一定的规则生成OTP验证码
         Random random = new Random();
-        int randomInt = random.nextInt(99999);
-        randomInt += 10000;
+        int randomInt = random.nextInt(9999);
+        randomInt += 1000;
         String otpCode = String.valueOf(randomInt);
 
         //将OTP验证码同对应用户的手机号关联，使用httpsession的方式绑定手机号与OTPCDOE
@@ -127,11 +127,11 @@ public class UserController extends BaseController {
         //将OTP验证码通过短信通道发送给用户，省略
         System.out.println("telphone=" + telphone + "&otpCode=" + otpCode);
 
-        return CommonReturnType.create(null);
+        return CommonReturnType.create(otpCode);
     }
 
-    @GetMapping("/get")
     @ResponseBody
+    @GetMapping("/get")
     public CommonReturnType getUser(@RequestParam(name = "id") Integer id) throws BusinessException {
         UserModel userModel = userService.getUserById(id);
         if (userModel == null) {
