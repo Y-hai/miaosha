@@ -2,6 +2,7 @@ package com.miaoshaproject.controller;
 
 import com.miaoshaproject.error.BusinessException;
 import com.miaoshaproject.error.EmBusinessError;
+import com.miaoshaproject.mq.MqProducer;
 import com.miaoshaproject.response.CommonReturnType;
 import com.miaoshaproject.service.ItemService;
 import com.miaoshaproject.service.OrderService;
@@ -14,7 +15,6 @@ import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.*;
 
 import javax.servlet.http.HttpServletRequest;
-import java.util.concurrent.TimeUnit;
 
 @Controller("order")
 @RequestMapping("/order")
@@ -29,6 +29,12 @@ public class OrderController extends BaseController {
 
     @Autowired
     private RedisTemplate redisTemplate;
+
+    @Autowired
+    private MqProducer mqProducer;
+
+    @Autowired
+    private ItemService itemService;
 
     //封装下单请求
     @ResponseBody
@@ -48,10 +54,25 @@ public class OrderController extends BaseController {
         if (userModel == null) {
             throw new BusinessException(EmBusinessError.USER_NOT_LOGIN, "用户还未登录，不能下单");
         }
+
         //UserModel userModel = (UserModel) httpServletRequest.getSession().getAttribute("LOGIN_USER");
+//        OrderModel orderModel = orderService.createOrder(userModel.getId(), itemId, promoId, amount);
+        if (promoId != null) {
+            // 判断库存是否售罄
+            if (redisTemplate.hasKey("promo_item_stock_invalid_" + itemId)) {
+                throw new BusinessException(EmBusinessError.STOCK_NOT_ENOUGH);
+            }
 
-        OrderModel orderModel = orderService.createOrder(userModel.getId(), itemId, promoId, amount);
+            // 加入库存流水init状态
+            String stockLogId = itemService.initStockLog(itemId, amount);
 
+            // 再去完成对应的下单事务型消息
+            if (!mqProducer.transactionAsyncReduceStock(userModel.getId(), itemId, promoId, amount, stockLogId)) {
+                throw new BusinessException(EmBusinessError.UNKNOWN_ERROR, "下单失败");
+            }
+        } else {
+            OrderModel orderModel = orderService.createOrder(userModel.getId(), itemId, promoId, amount, null);
+        }
         return CommonReturnType.create(null);
     }
 }

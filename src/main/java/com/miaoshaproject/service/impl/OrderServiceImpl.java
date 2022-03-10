@@ -3,8 +3,10 @@ package com.miaoshaproject.service.impl;
 import com.miaoshaproject.dao.ItemStockDOMapper;
 import com.miaoshaproject.dao.OrderDOMapper;
 import com.miaoshaproject.dao.SequenceDOMapper;
+import com.miaoshaproject.dao.StockLogDOMapper;
 import com.miaoshaproject.dataobject.OrderDO;
 import com.miaoshaproject.dataobject.SequenceDO;
+import com.miaoshaproject.dataobject.StockLogDO;
 import com.miaoshaproject.error.BusinessException;
 import com.miaoshaproject.error.EmBusinessError;
 import com.miaoshaproject.service.ItemService;
@@ -19,8 +21,6 @@ import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.transaction.support.TransactionSynchronizationAdapter;
-import org.springframework.transaction.support.TransactionSynchronizationManager;
 
 import javax.annotation.Resource;
 import java.math.BigDecimal;
@@ -49,12 +49,15 @@ public class OrderServiceImpl implements OrderService {
     @Autowired
     private RedisTemplate redisTemplate;
 
+    @Resource
+    private StockLogDOMapper stockLogDOMapper;
+
 //    @Resource
 //    private CacheService cacheService;
 
     @Override
     @Transactional
-    public OrderModel createOrder(Integer userId, Integer itemId, Integer promoId, Integer amount) throws BusinessException {
+    public OrderModel createOrder(Integer userId, Integer itemId, Integer promoId, Integer amount, String stockLogId) throws BusinessException {
 
         //1.校验下单状态，下单的商品是否存在，用户是否合法，购买数量是否正确
 //        ItemModel itemModel = itemService.getItemById(itemId);
@@ -81,7 +84,7 @@ public class OrderServiceImpl implements OrderService {
             } else if (itemModel.getPromoModel().getStatus() != 2) {
                 throw new BusinessException(EmBusinessError.PARAMETER_VALIDATION_ERROR, "活动信息不正确");
             }
-            //2.落单减库存，对于活动商品通过rocketmq来实现
+            //2.落单减库存，这里只是扣减了Redis，并没有发送消息给broker
             boolean result = itemService.decreaseStock(itemId, amount);
             if (!result)
                 throw new BusinessException(EmBusinessError.STOCK_NOT_ENOUGH);
@@ -121,24 +124,35 @@ public class OrderServiceImpl implements OrderService {
         orderModel.setId(generateOrderNo());
         OrderDO orderDO = this.convertFromOrderModel(orderModel);
         orderDOMapper.insertSelective(orderDO);
+
         //加上商品的销量
         itemService.increaseSales(itemId, amount);
+
+        if (promoId != null) {
+            // 设置库存流水状态为成功，这个地方并不会花费很多时间，因为行锁不会产生锁竞争
+            StockLogDO stockLogDO = stockLogDOMapper.selectByPrimaryKey(stockLogId);
+            if (stockLogDO == null) {
+                throw new BusinessException(EmBusinessError.UNKNOWN_ERROR);
+            }
+            stockLogDO.setStatus(2);
+            stockLogDOMapper.updateByPrimaryKeySelective(stockLogDO);
+        }
 
         // 清除guava cache缓存
 //        cacheService.rmCommonCache("item_" + itemId);
 //        redisTemplate.delete("item_" + itemId);
 
-        TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronizationAdapter() {
-            @Override
-            public void afterCommit() {
-                // 异步更新库存
-                boolean mqResult = itemService.asyncDecreaseStock(itemId, amount);
-//                if (!mqResult) {
-//                    itemService.increaseStock(itemId, amount);
-//                    throw new BusinessException(EmBusinessError.MQ_SEND_FAIL);
-//                }
-            }
-        });
+//        TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronizationAdapter() {
+//            @Override
+//            public void afterCommit() {
+//                // 发送异步消息给broker，在最近的事务执行成功之后才会执行
+//                boolean mqResult = itemService.asyncDecreaseStock(itemId, amount);
+////                if (!mqResult) {
+////                    itemService.increaseStock(itemId, amount);
+////                    throw new BusinessException(EmBusinessError.MQ_SEND_FAIL);
+////                }
+//            }
+//        });
 
         //4.返回前端
         return orderModel;

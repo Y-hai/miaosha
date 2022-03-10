@@ -82,7 +82,14 @@
         <!--               selectByExampleQueryId="false"></table>-->
 
 
-        <table tableName="promo" domainObjectName="PromoDO"
+<!--        <table tableName="promo" domainObjectName="PromoDO"-->
+<!--               enableCountByExample="false"-->
+<!--               enableUpdateByExample="false"-->
+<!--               enableDeleteByExample="false"-->
+<!--               enableSelectByExample="false"-->
+<!--               selectByExampleQueryId="false"></table>-->
+
+        <table tableName="stock_log" domainObjectName="StockLogDO"
                enableCountByExample="false"
                enableUpdateByExample="false"
                enableDeleteByExample="false"

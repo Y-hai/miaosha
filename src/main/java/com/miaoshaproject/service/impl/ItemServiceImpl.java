@@ -2,8 +2,10 @@ package com.miaoshaproject.service.impl;
 
 import com.miaoshaproject.dao.ItemDOMapper;
 import com.miaoshaproject.dao.ItemStockDOMapper;
+import com.miaoshaproject.dao.StockLogDOMapper;
 import com.miaoshaproject.dataobject.ItemDO;
 import com.miaoshaproject.dataobject.ItemStockDO;
+import com.miaoshaproject.dataobject.StockLogDO;
 import com.miaoshaproject.error.BusinessException;
 import com.miaoshaproject.error.EmBusinessError;
 import com.miaoshaproject.mq.MqProducer;
@@ -21,6 +23,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import javax.annotation.Resource;
 import java.util.List;
+import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
@@ -44,6 +47,9 @@ public class ItemServiceImpl implements ItemService {
 
     @Autowired
     private RedisTemplate redisTemplate;
+
+    @Resource
+    private StockLogDOMapper stockLogDOMapper;
 
     @Override
     @Transactional
@@ -133,20 +139,25 @@ public class ItemServiceImpl implements ItemService {
     @Override
     @Transactional
     public boolean decreaseStock(Integer itemId, Integer amount) throws BusinessException {
-//        int affectedRow = itemStockDOMapper.decreaseStock(itemId, amount);
         // 扣减Redis中的值
         long result = redisTemplate.opsForValue().increment("promo_item_stock_" + itemId, amount.intValue() * -1);
         // 返回值是更改过后的值
-        if (result >= 0) {
+        if (result > 0) {
+            // Redis扣减成功
+            return true;
 //            boolean mqResult = mqProducer.asyncReduceStock(itemId, amount);
-//            // mq异常，更新库存失败，回滚
+//            // mq异常，更新库存失败，库存回补
 //            if (!mqResult) {
 //                redisTemplate.opsForValue().increment("promo_item_stock_" + itemId, amount.intValue());
 //                return false;
 //            }
+        } else if (result == 0) {
+            // 库存售罄
+            redisTemplate.opsForValue().set("promo_item_stock_invalid_" + itemId, "true");
+            // Redis扣减成功
             return true;
         } else {
-            // 库存不足，更新库存失败，回滚
+            // Redis扣减失败，库存回补
             increaseStock(itemId, amount);
             return false;
         }
@@ -158,16 +169,34 @@ public class ItemServiceImpl implements ItemService {
         return true;
     }
 
-    @Override
-    public boolean asyncDecreaseStock(Integer itemId, Integer amount) {
-        boolean mqResult = mqProducer.asyncReduceStock(itemId, amount);
-        return mqResult;
-    }
+//    @Override // 用不到了
+//    public boolean asyncDecreaseStock(Integer itemId, Integer amount) {
+//        boolean mqResult = mqProducer.asyncReduceStock(itemId, amount);
+//        return mqResult;
+//    }
 
     @Override
     @Transactional
     public void increaseSales(Integer itemId, Integer amount) {
         itemDOMapper.increaseSales(itemId, amount);
+    }
+
+    // 初始化对应的库存流水
+    @Override
+    @Transactional
+    public String initStockLog(Integer itemId, Integer amount) {
+        // 生成库存流水实体类
+        StockLogDO stockLogDO = new StockLogDO();
+        stockLogDO.setItemId(itemId);
+        stockLogDO.setAmount(amount);
+        stockLogDO.setStockLogId(UUID.randomUUID().toString().replace("-", ""));
+        stockLogDO.setStatus(1); // 初始状态，
+
+        // 向数据库中加入流水记录
+        stockLogDOMapper.insertSelective(stockLogDO);
+
+        // 加入流水id
+        return stockLogDO.getStockLogId();
     }
 
     private ItemModel convertModelFromDataObject(ItemDO itemDO, ItemStockDO itemStockDO) {
