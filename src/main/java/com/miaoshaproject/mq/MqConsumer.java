@@ -3,7 +3,6 @@ package com.miaoshaproject.mq;
 import com.alibaba.fastjson.JSON;
 import com.miaoshaproject.dao.ItemStockDOMapper;
 import com.miaoshaproject.service.ItemService;
-import com.miaoshaproject.service.model.ItemModel;
 import org.apache.rocketmq.client.consumer.DefaultMQPushConsumer;
 import org.apache.rocketmq.client.consumer.listener.ConsumeConcurrentlyContext;
 import org.apache.rocketmq.client.consumer.listener.ConsumeConcurrentlyStatus;
@@ -58,7 +57,7 @@ public class MqConsumer {
                 Map<String, Object> map = JSON.parseObject(jsonString, Map.class);
                 Integer itemId = (Integer) map.get("itemId");
                 Integer amount = (Integer) map.get("amount");
-
+                Integer promoId = (Integer) map.get("promoId"); // 有可能为空
                 itemStockDOMapper.decreaseStock(itemId, amount);
                 // 更新redis缓存
                 redisTemplate.opsForValue().set("item_" + itemId, itemService.getItemById(itemId));

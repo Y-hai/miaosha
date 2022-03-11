@@ -30,8 +30,8 @@ import java.util.stream.Collectors;
 @Service
 public class ItemServiceImpl implements ItemService {
 
-    @Autowired
-    private MqProducer mqProducer;
+//    @Autowired
+//    private MqProducer mqProducer;
 
     @Autowired
     private ValidatorImpl validator;
