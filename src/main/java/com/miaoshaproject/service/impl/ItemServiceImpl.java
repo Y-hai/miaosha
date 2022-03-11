@@ -8,7 +8,6 @@ import com.miaoshaproject.dataobject.ItemStockDO;
 import com.miaoshaproject.dataobject.StockLogDO;
 import com.miaoshaproject.error.BusinessException;
 import com.miaoshaproject.error.EmBusinessError;
-import com.miaoshaproject.mq.MqProducer;
 import com.miaoshaproject.service.ItemService;
 import com.miaoshaproject.service.PromoService;
 import com.miaoshaproject.service.model.ItemModel;
@@ -60,7 +59,7 @@ public class ItemServiceImpl implements ItemService {
             throw new BusinessException(EmBusinessError.PARAMETER_VALIDATION_ERROR, result.getErrMsg());
         }
 
-        //转化itemmodel->dataobject
+        // 领域模型转化为实体模型
         ItemDO itemDO = this.convertItemDOFromItemModel(itemModel);
 
         //写入数据库
@@ -114,10 +113,10 @@ public class ItemServiceImpl implements ItemService {
         //操作获得库存数量
         ItemStockDO itemStockDO = itemStockDOMapper.selectByItemId(itemDO.getId());
 
-        //将dataobject-> Model
+        //将实体模型转化为领域模型
         ItemModel itemModel = convertModelFromDataObject(itemDO, itemStockDO);
 
-        //获取活动商品信息
+        //注入活动商品信息（如果存在活动）
         PromoModel promoModel = promoService.getPromoByItemId(itemModel.getId());
         if (promoModel != null && promoModel.getStatus().intValue() != 3) {
             itemModel.setPromoModel(promoModel);

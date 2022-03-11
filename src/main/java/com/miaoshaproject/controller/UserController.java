@@ -13,7 +13,6 @@ import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.*;
 
-import java.io.UnsupportedEncodingException;
 import java.math.BigInteger;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
@@ -41,21 +40,19 @@ public class UserController extends BaseController {
     public CommonReturnType login(@RequestParam(name = "telphone") String telphone,
                                   @RequestParam(name = "password") String password)
             throws BusinessException, NoSuchAlgorithmException {
-        //入参校验
+        //入参校验，非空校验
         if (StringUtils.isEmpty(telphone) || StringUtils.isEmpty(password)) {
             throw new BusinessException(EmBusinessError.PARAMETER_VALIDATION_ERROR);
         }
 
         //用户登录服务，用来校验用户登录是否合法，验证成功返回UserModel
-        //用户加密后的密码
         UserModel userModel = userService.validateLogin(telphone, this.EncodeByMd5(password));
 
         //将登陆凭证加入到用户登录成功的session内
         //修改成若用户登陆成功后将对应的登录信息和登录凭证一起存入redis中
 
         // 生成登陆凭证token，UUID
-        String uuidToken = UUID.randomUUID().toString();
-        uuidToken = uuidToken.replace("-", "");
+        String uuidToken = UUID.randomUUID().toString().replace("-", "");
         //建立token和用户登录态之间的联系
         redisTemplate.opsForValue().set(uuidToken, userModel);
         redisTemplate.expire(uuidToken, 1, TimeUnit.HOURS);
@@ -78,6 +75,7 @@ public class UserController extends BaseController {
             throws BusinessException, NoSuchAlgorithmException {
         //验证手机号和对应的otpCode相符合
 //        String inSessionOtpCode = (String) this.httpServletRequest.getSession().getAttribute(telphone);
+        // 获取手机号对应的otp码
         String inSessionOtpCode = (String) redisTemplate.opsForValue().get(telphone);
         // 这个equals主要是有一个判空的处理
         if (!com.alibaba.druid.util.StringUtils.equals(otpCode, inSessionOtpCode)) {
@@ -124,7 +122,7 @@ public class UserController extends BaseController {
 //        httpServletRequest.getSession().setAttribute(telphone, otpCode);
         redisTemplate.opsForValue().set(telphone, otpCode);
         redisTemplate.expire(telphone, 10, TimeUnit.MINUTES);
-        //将OTP验证码通过短信通道发送给用户，省略
+        //将OTP验证码通过短信通道发送给用户（这里待扩展）
         System.out.println("telphone=" + telphone + "&otpCode=" + otpCode);
 
         return CommonReturnType.create(otpCode);
@@ -137,7 +135,7 @@ public class UserController extends BaseController {
         if (userModel == null) {
             throw new BusinessException(EmBusinessError.USER_NOT_EXIST);
         }
-        // 有些信息不能传到前端
+        // 有些信息不能传到前端，领域模型转换为视图模型
         UserVO userVO = convertFromModel(userModel);
         // 返回通用对象
         return CommonReturnType.create(userVO);

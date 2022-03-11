@@ -54,7 +54,8 @@ public class ItemController extends BaseController {
 
         ItemModel itemModelForReturn = itemService.createItem(itemModel);
         ItemVO itemVO = convertVOFromModel(itemModelForReturn);
-        promoService.publishPromo(itemModelForReturn.getId()); // 同步缓存到Redis
+        // 这里有问题
+//        promoService.publishPromo(itemModelForReturn.getId()); // 同步缓存到Redis
         return CommonReturnType.create(itemVO);
     }
 

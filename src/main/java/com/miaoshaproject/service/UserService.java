@@ -10,6 +10,7 @@ public interface UserService {
     // 通过缓存获取用户对象
     UserModel getUserByIdInCache(Integer id);
 
+    // 用户注册登记（创建用户）
     void register(UserModel userModel) throws BusinessException;
 
     UserModel validateLogin(String telphone, String encrptPassword) throws BusinessException;

@@ -49,17 +49,18 @@ public class OrderController extends BaseController {
 
     @PostConstruct
     public void init() {
+        // 设置20个线程队列，（队列泄洪）
         executorService = Executors.newFixedThreadPool(20);
         // 限流
         orderCreateRateLimiter = RateLimiter.create(300);
     }
 
-    //生成秒杀令牌
+    //获取秒杀令牌
     @ResponseBody
     @PostMapping(value = "/generatetoken", consumes = {CONTENT_TYPE_FORMED})
     public CommonReturnType generatetoken(@RequestParam(name = "itemId") Integer itemId,
                                           @RequestParam(name = "promoId") Integer promoId) throws BusinessException {
-        // 根据token获取用户信息
+        // 根据用户登陆凭证（另一个登陆token）获取用户信息，从request中获取登陆令牌
         String token = httpServletRequest.getParameterMap().get("token")[0];
         if (StringUtils.isEmpty(token)) {
             throw new BusinessException(EmBusinessError.USER_NOT_LOGIN, "用户还未登录，不能下单");
@@ -93,7 +94,7 @@ public class OrderController extends BaseController {
             throw new BusinessException(EmBusinessError.RATELIMIT);
         }
 
-        // 校验用户是否登陆
+        // 校验用户是否登陆，这里不能省略，因为对应非活动商品没用令牌校验身份
         String token = httpServletRequest.getParameterMap().get("token")[0];
         if (StringUtils.isEmpty(token)) {
             throw new BusinessException(EmBusinessError.USER_NOT_LOGIN, "用户还未登录，不能下单");
@@ -135,7 +136,7 @@ public class OrderController extends BaseController {
             });
 
             try {
-                future.get();
+                future.get(); // 获取线程结果
             } catch (InterruptedException e) {
                 throw new BusinessException(EmBusinessError.UNKNOWN_ERROR, "线程池错误");
             } catch (ExecutionException e) {
@@ -144,6 +145,7 @@ public class OrderController extends BaseController {
 
             return CommonReturnType.create(null);
         } else {
+            // 非活动商品直接下单
             OrderModel orderModel = orderService.createOrder(userModel.getId(), itemId, promoId, amount, null);
             return CommonReturnType.create(null);
         }

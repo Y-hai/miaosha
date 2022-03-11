@@ -88,7 +88,7 @@ public class OrderServiceImpl implements OrderService {
             if (!result)
                 throw new BusinessException(EmBusinessError.STOCK_NOT_ENOUGH);
         } else {
-            // 对于非活动商品直接扣减数据库，后面更新Redis
+            // 对于非活动商品直接扣减数据库库存，增加商品销量后统一更新Redis
             int affectedRow = itemStockDOMapper.decreaseStock(itemId, amount);
             if (affectedRow <= 0) {
                 throw new BusinessException(EmBusinessError.STOCK_NOT_ENOUGH);

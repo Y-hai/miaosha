@@ -45,6 +45,8 @@ public class MqConsumer {
     public void init() throws MQClientException {
         consumer = new DefaultMQPushConsumer("stock_consumer_group");
         consumer.setNamesrvAddr(nameAddr);
+        // 订阅此主题内所有消息，因为一个主题可能有多个生产者多个消费者
+        // nameserver管理所有broker、producer、consumer之间的关系
         consumer.subscribe(topicName, "*");
 
         consumer.registerMessageListener(new MessageListenerConcurrently() {
@@ -57,7 +59,8 @@ public class MqConsumer {
                 Map<String, Object> map = JSON.parseObject(jsonString, Map.class);
                 Integer itemId = (Integer) map.get("itemId");
                 Integer amount = (Integer) map.get("amount");
-                Integer promoId = (Integer) map.get("promoId"); // 有可能为空
+//                Integer promoId = (Integer) map.get("promoId"); // 有可能为空
+                // 数据库落库
                 itemStockDOMapper.decreaseStock(itemId, amount);
                 // 更新redis缓存
                 redisTemplate.opsForValue().set("item_" + itemId, itemService.getItemById(itemId));

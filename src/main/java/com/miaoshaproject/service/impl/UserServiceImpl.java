@@ -58,7 +58,7 @@ public class UserServiceImpl implements UserService {
     }
 
     @Override
-    @Transactional//声明事务
+    @Transactional
     public void register(UserModel userModel) throws BusinessException {
         //校验
         if (userModel == null) {
@@ -70,16 +70,17 @@ public class UserServiceImpl implements UserService {
 //                || StringUtils.isEmpty(userModel.getTelphone())) {
 //            throw new BusinessException(EmBusinessError.PARAMETER_VALIDATION_ERROR);
 //        }
-        ValidationResult result = validator.validate(userModel);
+        // 为什么要单独写一个校验类，为了减少代码冗余
+        ValidationResult result = validator.validate(userModel); // 登陆校验
         if (result.isHasErrors()) {
             throw new BusinessException(EmBusinessError.PARAMETER_VALIDATION_ERROR, result.getErrMsg());
         }
 
-        //实现model->dataobject方法
+        // 领域类转化为实体类
         UserDO userDO = convertFromModel(userModel);
         // 防止手机号重复
         try {
-            //insertSelective相对于insert方法，不会覆盖掉数据库的默认值
+            // 先进行select查询，如果存在则不进行插入
             userDOMapper.insertSelective(userDO);
         } catch (DuplicateKeyException ex) {
             throw new BusinessException(EmBusinessError.PARAMETER_VALIDATION_ERROR, "手机号已注册");

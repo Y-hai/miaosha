@@ -115,7 +115,7 @@ public class MqProducer {
                 JSON.toJSON(bodyMap).toString().getBytes(Charset.forName("UTF-8")));
 
         TransactionSendResult sendResult = null;
-        try { // 消息发送
+        try { // 发送事务型消息
             sendResult = transactionMQProducer.sendMessageInTransaction(message, argsMap);
         } catch (MQClientException e) {
             e.printStackTrace();
