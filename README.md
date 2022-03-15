@@ -25,6 +25,6 @@
     <li><font size="4">Redis6.2.6</font></li>
 </ul>
 <h2>项目架构图</h2>
-<img src="./1.jpg" alt="图片或logo" title="logo" width="900" hight="900" />
+<img src="./1.png" alt="图片或logo" title="logo" width="900" hight="900" />
 </body>
 </html>
