@@ -2,7 +2,6 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>readme</title>
 </head>
 <body>
 <h1 style="text-align:center">项目简介</h1>
