@@ -11,7 +11,6 @@
     <li><font size="4">项目主要追求性能和并发量，经apache-jmeter压测，tps查询峰值在3Mbps带宽下可达1500，稳定在800，4台服务器分布式部署如果使用本地缓存且不计带宽限制，tps查询峰值可达3000，稳定在1500</font>
     </li>
     <li><font size="4">开发周期2022.02.01 ~ 2022.03.15，前端代码部分借鉴MOOC、GitHub开源项目，后端代码每行均为个人独立编写</font></li>
-    <li><a href="https://github.com/Y-hai/miaosha" target="_blank"><font size="4">GitHub项目传送门</font></a></li>
 </ul>
 <h2>环境及框架</h2>
 <ul>
